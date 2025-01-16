@@ -1,19 +1,10 @@
 import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-from db.database import init_db, SessionLocal
+from db.database import init_db
 from services.embeddings import EmbeddingService
-from models.nutrition_data import NutritionDocument
 
 # Sample nutrition documents
 SAMPLE_DOCUMENTS = [
-    {
-        "title": "Healthy Eating in Andover",
-        "content": """Local markets in Andover offer a variety of fresh produce at affordable prices. 
-        Market Basket on North Main Street provides budget-friendly organic options, while Stop & Shop 
-        offers weekly deals on fresh fruits and vegetables. The Andover Farmers Market, open from June 
-        to October, is an excellent source for local, seasonal produce.""",
-        "source": "Andover Health Department Guide"
-    },
+
     {
         "title": "Budget-Friendly Protein Sources",
         "content": """For protein-rich meals on a budget in Andover, consider these options:

@@ -16,7 +16,7 @@ class NutritionResponse(BaseModel):
 class NutritionService:
     def __init__(self):
         self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-        self.llm_model = "mixtral"  # Using Mixtral as our main LLM
+        self.llm_model = "mistral:latest"  # Using mistral as our main LLM
         self.embedding_model = "nomic-embed-text"  # Using nomic-embed-text for embeddings
         
     async def _generate_response(self, prompt: str, system_message: str, temperature: float = 0.7) -> Dict:
@@ -52,7 +52,7 @@ class NutritionService:
         
     async def get_nutrition_advice(self, query: NutritionQuery) -> NutritionResponse:
         """
-        Get nutrition advice using Ollama's RAG capabilities with Mixtral.
+        Get nutrition advice using Ollama's RAG capabilities with Mistral.
         """
         system_message = """You are a knowledgeable nutritionist AI assistant helping underserved communities 
         in Andover, Massachusetts. Your goal is to provide practical, actionable nutrition advice that takes 
@@ -72,7 +72,7 @@ class NutritionService:
     
     async def get_meal_plan(self, preferences: Dict) -> Dict:
         """
-        Generate a personalized meal plan based on user preferences and constraints using Mixtral.
+        Generate a personalized meal plan based on user preferences and constraints using Mistral.
         """
         system_message = """Create a weekly meal plan that is nutritious, affordable, and easy to prepare. 
         Consider local food availability in Andover, Massachusetts, and focus on budget-friendly options 

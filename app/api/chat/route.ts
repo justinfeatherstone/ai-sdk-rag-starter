@@ -4,44 +4,56 @@ import { headers } from "next/headers";
 export async function POST(request: Request) {
   try {
     const headersList = headers();
-    const token = headersList.get("authorization")?.split(" ")[1];
-    
+    const token = headersList.get("authorization");
+
     if (!token) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "No authorization token provided" },
         { status: 401 }
       );
     }
 
-    const body = await request.json();
-    const { message } = body;
-
-    // Call our Python backend with RAG capabilities
-    const response = await fetch("http://localhost:8000/api/nutrition/advice", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        query: message,
-        context: "" // Add empty context as required by our backend
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Backend error:", errorData);  // Add detailed logging
-      throw new Error(`Failed to get response from backend: ${errorData.detail || response.statusText}`);
+    // Get request body
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Failed to process message: Invalid JSON" },
+        { status: 400 }
+      );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Make request to backend
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/nutrition/advice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return NextResponse.json({ 
+          error: `Failed to get response from backend: ${data.error || 'Backend error'}`
+        }, { status: response.status });
+      }
+
+      return NextResponse.json(data);
+    } catch (error) {
+      console.error('Network error:', error);
+      return NextResponse.json({ error: 'Network error' }, { status: 500 });
+    }
   } catch (error) {
-    console.error("Error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process message" },
-      { status: 500 }
-    );
+    console.error('Internal error:', error);
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : "Internal server error",
+    },
+    { status: 500 }
+  );
   }
-} 
+}

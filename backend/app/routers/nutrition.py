@@ -16,6 +16,7 @@ async def get_nutrition_advice(
     Get personalized nutrition advice based on the query and user context.
     """
     try:
+        print(f"Query: {query}")
         return await nutrition_service.get_nutrition_advice(query)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

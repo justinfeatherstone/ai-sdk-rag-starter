@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
       // After registration, log the user in
       return await POST(
-        new Request("http://localhost:3000/api/auth", {
+        new Request("http://localhost:8000/api/auth/token", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

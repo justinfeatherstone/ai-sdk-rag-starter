@@ -2,12 +2,12 @@ from nomic import embed
 import numpy as np
 from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import text
 from ..models.nutrition_data import NutritionDocument, NutritionQuery
 
 class EmbeddingService:
     def __init__(self):
-        self.model = "nomic-embed-text-v1.5"
+        self.model = "nomic-embed-text"
         self.embed = embed
 
     async def get_embedding(self, text: str) -> List[float]:
