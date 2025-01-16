@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
-from ..services.nutrition import NutritionService, NutritionQuery, NutritionResponse
-from .auth import oauth2_scheme
+from app.services.nutrition import NutritionService, NutritionQuery, NutritionResponse
+from app.routers.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter()
 nutrition_service = NutritionService()
@@ -9,10 +10,10 @@ nutrition_service = NutritionService()
 @router.post("/advice", response_model=NutritionResponse)
 async def get_nutrition_advice(
     query: NutritionQuery,
-    token: str = Depends(oauth2_scheme)
-):
+    current_user: User = Depends(get_current_user)
+) -> NutritionResponse:
     """
-    Get personalized nutrition advice based on the query and context.
+    Get personalized nutrition advice based on the query and user context.
     """
     try:
         return await nutrition_service.get_nutrition_advice(query)
@@ -22,12 +23,16 @@ async def get_nutrition_advice(
 @router.post("/meal-plan")
 async def generate_meal_plan(
     preferences: Dict,
-    token: str = Depends(oauth2_scheme)
-):
+    current_user: User = Depends(get_current_user)
+) -> Dict:
     """
-    Generate a personalized meal plan based on preferences and constraints.
+    Generate a personalized meal plan based on user preferences and dietary requirements.
     """
     try:
+        # Add user's dietary preferences from their profile if available
+        if hasattr(current_user, "dietary_preferences"):
+            preferences.update({"user_preferences": current_user.dietary_preferences})
+            
         return await nutrition_service.get_meal_plan(preferences)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

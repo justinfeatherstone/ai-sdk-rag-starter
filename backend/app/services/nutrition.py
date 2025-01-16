@@ -1,7 +1,8 @@
 import httpx
-from typing import List, Dict
+from typing import List, Dict, Optional
 import json
 import os
+from datetime import datetime
 from pydantic import BaseModel
 
 class NutritionQuery(BaseModel):
@@ -14,74 +15,88 @@ class NutritionResponse(BaseModel):
 
 class NutritionService:
     def __init__(self):
-        self.ollama_url = "http://localhost:11434"
-        self.model = "mistral"  # You can change this to any model you have in Ollama
+        self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+        self.llm_model = "mixtral"  # Using Mixtral as our main LLM
+        self.embedding_model = "nomic-embed-text"  # Using nomic-embed-text for embeddings
+        
+    async def _generate_response(self, prompt: str, system_message: str, temperature: float = 0.7) -> Dict:
+        """
+        Helper method to generate responses using Mixtral.
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                # First, create the chat completion
+                response = await client.post(
+                    f"{self.ollama_url}/api/chat",
+                    json={
+                        "model": self.llm_model,
+                        "messages": [
+                            {"role": "system", "content": system_message},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "options": {
+                            "temperature": temperature,
+                            "num_ctx": 4096,
+                            "top_p": 0.9
+                        },
+                        "stream": False
+                    },
+                    timeout=30.0  # Increased timeout for longer responses
+                )
+                response.raise_for_status()
+                result = response.json()
+                return {"response": result["message"]["content"]}
+        except Exception as e:
+            print(f"Error generating response: {str(e)}")  # Add debug logging
+            raise Exception(f"Error generating response: {str(e)}")
         
     async def get_nutrition_advice(self, query: NutritionQuery) -> NutritionResponse:
         """
-        Get nutrition advice using Ollama's RAG capabilities.
+        Get nutrition advice using Ollama's RAG capabilities with Mixtral.
         """
-        # Construct the prompt with context
-        system_prompt = """You are a knowledgeable nutritionist AI assistant helping underserved communities 
+        system_message = """You are a knowledgeable nutritionist AI assistant helping underserved communities 
         in Andover, Massachusetts. Your goal is to provide practical, actionable nutrition advice that takes 
         into account budget constraints and local food availability. Always provide evidence-based recommendations 
         and consider cultural preferences."""
         
-        full_prompt = f"{system_prompt}\n\nContext: {query.context}\n\nQuestion: {query.query}"
+        result = await self._generate_response(
+            prompt=f"Context: {query.context}\n\nQuestion: {query.query}",
+            system_message=system_message,
+            temperature=0.7
+        )
         
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.ollama_url}/api/generate",
-                    json={
-                        "model": self.model,
-                        "prompt": full_prompt,
-                        "stream": False
-                    }
-                )
-                response.raise_for_status()
-                result = response.json()
-                
-                return NutritionResponse(
-                    response=result["response"],
-                    sources=[]  # In a real implementation, you would include relevant sources
-                )
-                
-        except Exception as e:
-            raise Exception(f"Error getting nutrition advice: {str(e)}")
+        return NutritionResponse(
+            response=result["response"],
+            sources=[]  # In a real implementation, you would include relevant sources
+        )
     
     async def get_meal_plan(self, preferences: Dict) -> Dict:
         """
-        Generate a personalized meal plan based on user preferences and constraints.
+        Generate a personalized meal plan based on user preferences and constraints using Mixtral.
         """
-        system_prompt = """Create a weekly meal plan that is nutritious, affordable, and easy to prepare. 
+        system_message = """Create a weekly meal plan that is nutritious, affordable, and easy to prepare. 
         Consider local food availability in Andover, Massachusetts, and focus on budget-friendly options 
-        while maintaining high nutritional value."""
+        while maintaining high nutritional value. Structure the response as a JSON object with days of the week 
+        and meals for each day."""
         
-        prompt = f"{system_prompt}\n\nPreferences: {json.dumps(preferences)}"
+        result = await self._generate_response(
+            prompt=f"Generate a meal plan based on these preferences: {json.dumps(preferences)}",
+            system_message=system_message,
+            temperature=0.8  # Slightly higher temperature for more creative meal plans
+        )
         
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.ollama_url}/api/generate",
-                    json={
-                        "model": self.model,
-                        "prompt": prompt,
-                        "stream": False
-                    }
-                )
-                response.raise_for_status()
-                result = response.json()
-                
-                # Parse the response into a structured meal plan
-                # In a real implementation, you would parse this into a proper structure
-                return {
-                    "meal_plan": result["response"],
-                    "metadata": {
-                        "generated_at": "timestamp",
-                        "model_used": self.model
-                    }
-                }
-                
-        except Exception as e:
-            raise Exception(f"Error generating meal plan: {str(e)}") 
+            # Attempt to parse the response as JSON for structured meal plans
+            meal_plan = json.loads(result["response"])
+        except json.JSONDecodeError:
+            # Fallback to raw text if JSON parsing fails
+            meal_plan = result["response"]
+        
+        return {
+            "meal_plan": meal_plan,
+            "metadata": {
+                "generated_at": datetime.utcnow().isoformat(),
+                "model_used": self.llm_model,
+                "model_version": "latest"
+            }
+        } 

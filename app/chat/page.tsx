@@ -5,9 +5,16 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+interface Source {
+  title: string;
+  source: string;
+  similarity: number;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
+  sources?: Source[];
 }
 
 export default function ChatPage() {
@@ -62,6 +69,7 @@ export default function ChatPage() {
       const assistantMessage: Message = {
         role: "assistant",
         content: data.response,
+        sources: data.sources,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -83,9 +91,7 @@ export default function ChatPage() {
     <main className="flex min-h-screen flex-col items-center p-4 md:p-24">
       <div className="w-full max-w-4xl space-y-4">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">
-            NutriAI Assistant Chat
-          </h1>
+          <h1 className="text-2xl font-bold">NutriAI Assistant</h1>
           <Button variant="outline" onClick={handleLogout}>
             Logout
           </Button>
@@ -94,28 +100,39 @@ export default function ChatPage() {
         {/* Messages container */}
         <div className="space-y-4 mb-4 h-[60vh] overflow-y-auto p-4 rounded-lg border">
           {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+            <div key={index} className="space-y-2">
               <div
-                className={`max-w-[80%] rounded-lg p-4 ${
-                  message.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100"
+                className={`flex ${
+                  message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {message.content}
+                <div
+                  className={`max-w-[80%] rounded-lg p-4 ${
+                    message.role === "user"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100"
+                  }`}
+                >
+                  {message.content}
+                </div>
               </div>
+              {message.sources && message.sources.length > 0 && (
+                <div className="pl-4 text-sm text-gray-500">
+                  <p className="font-semibold">Sources:</p>
+                  <ul className="list-disc pl-5">
+                    {message.sources.map((source, idx) => (
+                      <li key={idx}>
+                        {source.title} ({source.source})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 rounded-lg p-4">
-                Thinking...
-              </div>
+              <div className="bg-gray-100 rounded-lg p-4">Thinking...</div>
             </div>
           )}
         </div>
@@ -125,7 +142,7 @@ export default function ChatPage() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about nutrition..."
+            placeholder="Ask about nutrition in Andover..."
             disabled={isLoading}
             className="flex-1"
           />

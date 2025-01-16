@@ -1,30 +1,46 @@
 import { NextResponse } from "next/server";
-
-const MOCK_RESPONSES = [
-  "Based on your dietary preferences and local food availability in Andover, I recommend incorporating more leafy greens into your diet. You can find affordable options at Market Basket or Stop & Shop.",
-  "A budget-friendly protein option available locally is chicken breast when it's on sale at Shaw's. You can prepare it in various healthy ways like grilling or baking.",
-  "For a balanced meal plan, try to include whole grains like brown rice or whole wheat bread, which are readily available at local stores and provide good nutritional value.",
-  "Consider visiting the Andover Farmers Market when in season for fresh, local produce at reasonable prices.",
-];
+import { headers } from "next/headers";
 
 export async function POST(request: Request) {
   try {
+    const headersList = headers();
+    const token = headersList.get("authorization")?.split(" ")[1];
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { message } = body;
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Get a random response
-    const response = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
-
-    return NextResponse.json({
-      response,
-      sources: [], // In a real app, this would include relevant nutrition sources
+    // Call our Python backend with RAG capabilities
+    const response = await fetch("http://localhost:8000/api/nutrition/advice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: message,
+        context: "" // Add empty context as required by our backend
+      }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Backend error:", errorData);  // Add detailed logging
+      throw new Error(`Failed to get response from backend: ${errorData.detail || response.statusText}`);
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
+    console.error("Error:", error);
     return NextResponse.json(
-      { error: "Failed to process message" },
+      { error: error instanceof Error ? error.message : "Failed to process message" },
       { status: 500 }
     );
   }

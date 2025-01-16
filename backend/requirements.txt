@@ -1,14 +1,28 @@
+# Web Framework
 fastapi==0.104.1
-uvicorn==0.24.0
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# Database
+sqlalchemy==2.0.25
+alembic==1.13.1
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+greenlet==3.0.1
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# HTTP Client
+httpx==0.25.2
+
+# AI/ML
+numpy==1.26.0
+pandas==2.1.3
+
+# Utilities
 pydantic==2.5.2
 pydantic[email]
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
-nomic==2.0.3
-sentence-transformers
-psycopg2-binary
-sqlalchemy
-asyncpg
-python-dotenv==1.0.0
-httpx==0.25.2 
+tenacity==8.2.3 
