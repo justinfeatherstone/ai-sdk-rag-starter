@@ -1,0 +1,14 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.2
+pydantic[email]
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+nomic==2.0.3
+sentence-transformers
+psycopg2-binary
+sqlalchemy
+asyncpg
+python-dotenv==1.0.0
+httpx==0.25.2 
